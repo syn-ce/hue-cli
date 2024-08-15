@@ -22,10 +22,10 @@ set_state() {
 }
 
 echo_info() {
-    if [ $? -eq 0 ]; then
-        echo "Light $1 turned $2 successfully."
+    if [ $1 -eq 0 ]; then
+        echo "Light $2 turned $3 successfully."
     else
-        echo "Failed to turn $2 light $1."
+        echo "Failed to turn $3 light $2."
     fi
 }
 
@@ -37,7 +37,7 @@ if ! [[ $1 =~ ^[0-9]+$ ]]; then
     for i in $(seq 1 $NR_LIGHTS);
     do
         set_light_state $i $STATE
-        echo_info $i $ACTION
+        echo_info $? $i $ACTION
     done
     exit 0
 fi
@@ -59,4 +59,4 @@ fi
 
 set_state
 set_light_state $LIGHT_NR $STATE
-echo_info $LIGHT_NR $ACTION
+echo_info $? $LIGHT_NR $ACTION
