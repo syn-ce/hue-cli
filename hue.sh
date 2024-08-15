@@ -48,8 +48,6 @@ LIGHT_NR=$1
 ACTION=$2
 
 if [ -z $ACTION ]; then # No action -> change state
-    echo "skj"
-    echo $(light_is_on $LIGHT_NR)
     if [ $(light_is_on $LIGHT_NR) == "true" ]; then
         ACTION="off"
     else
