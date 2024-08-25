@@ -40,7 +40,7 @@ An example will clear things up: Suppose you had one light (numbered 1) in your 
 ```
 house=bath,living_room
 mirror=3
-bath=mirror,2,house
+bath=mirror,2
 living_room=1
 ```
 
@@ -50,7 +50,7 @@ The following would therefore **not** be a valid mapping:
 ```
 house=bath,living_room
 mirror=3,house
-bath=mirror,2
+bath=mirror,2,house
 living_room=1
 ```
 
