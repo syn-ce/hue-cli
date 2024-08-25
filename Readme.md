@@ -103,9 +103,13 @@ DEFAULT_PROPERTIES=off,b=20
 ```
 
 Then these commands would do the following:
+
 `night:1,3=h50,b70,s100,on;2=off` - sets hue=50, bri=70, s100 and on=true for lights 1 and 3, sets on=false for light 2
+
 `shutdown:=off` - sets on=false [default lights](#default_lights), i.e. turns off default lights
+
 `def:=` - sets [default properties](#default_properties) for [default_lights](#default_lights)
+
 `cozy:=b10,1=off` - sets bri=10 for default lights and turns light 1 off
 
 ## Configuration
