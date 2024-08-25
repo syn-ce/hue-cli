@@ -1,6 +1,6 @@
 #! /bin/bash
 
-# Reads the mappings from aliases to aliases and light numbers defined in $1 (house=living_room,bath) 
+# Reads the mappings from aliases to aliases and light numbers defined in $1 (house=living_room,bath)
 # and processes them into a config $2 containing mappings from aliases to their lights (house=2,3,6).
 
 declare -A word2nums
@@ -29,7 +29,7 @@ process_arr_str() {
     local arr_str="${word2arr_str[$key]}"
     arr_str=${arr_str//,/ }
     echo " arr_str = $arr_str"
-    
+
     # Process every number and string (name) in the current array of light-aliases and -numbers
     for val in $arr_str
     do
@@ -88,7 +88,7 @@ AUTO_MAPPING_PATH=$2
 # Read aliases with their respective array
 while IFS='=' read key arr_str; do
     word2arr_str[$key]="$arr_str"
-done < "vars.sh"
+done < $LIGHT_MAPPING_PATH
 
 
 # Process all keys
