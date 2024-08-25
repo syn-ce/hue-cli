@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Contains HUE_BRIDGE_API, API_KEY, NR_LIGHTS, AUTO_MAPPING_PATH, LIGHT_MAPPING_PATH, COMMAND_PATH, PRINT(?), DEBUG(?)
+# Contains HUE_BRIDGE_API, API_KEY, NR_LIGHTS, AUTO_MAPPING_PATH, LIGHT_MAPPING_PATH, COMMAND_PATH, DEFAULT_LIGHTS, DEFAULT_PROPERTIES, PRINT(?), DEBUG(?)
 source ~/hue-cli/hue_config
 
 print() [[ -v PRINT ]]
@@ -60,33 +60,20 @@ execute_instruction() {
     declare -gA curr_instruction # Clear previous instruction
     LIGHT_LIST=() # Clear previous lights
 
-    IFS='=' read light_aliases properties <<< $1 # Split command into lights and properties
+    IFS='=' read light_aliases properties <<< $1 # Split instruction into lights and properties
 
-    IFS='=' read default_light_aliases default_properties <<< ${COMMANDS[__default]} # Split default command into lights and properties
+    debug && echo "Executing instruction '$1'. Parsed light_aliases '$light_aliases' and properties '$properties'"
 
-    debug && echo "Executing command '$1'. Parsed light_aliases '$light_aliases' and properties '$properties'"
-
-    if [ -v $light_aliases ] && [ -v $properties ]; then
-        debug && echo "No light aliases and properties. Falling back to default command '__default'."
-        light_aliases=$default_light_aliases
-        properties=$default_properties
-    else
-        if [ -v $light_aliases ]; then # Use the default light-aliases (if no default is specified/it has an empty light list, simply use all lights)
-            debug && echo "No light aliases. Using default lights '$default_light_aliases'."
-            light_aliases=$default_light_aliases
-        fi
-
-        if [ -v $properties ]; then
-            debug && echo "Empty properties. Trying to parse light_aliases as light aliases."
-            try_parse_light_list "$light_aliases" # Try to parse first argument as lights
-            if [ $? -ne 0 ]; then # If parsing of light-list was unsuccessful, operate on default (for now all) lights and try to parse as first argument as properties instead
-                debug && echo "Failed to parse list of light aliases '$light_aliases'. Trying to parse as command instead, operating on default_light aliases '$default_light_aliases'."
-                properties=$light_aliases
-                light_aliases=$default_light_aliases
-            else # Parsing of lights was successful -> use default command
-                debug && echo "Parsing of light aliases successful. No properties. Falling back to default '$default_properties'."
-                properties=$default_properties
-            fi
+    if [ -v $properties ]; then
+        debug && echo "Empty properties. Trying to parse light_aliases as light aliases."
+        try_parse_light_list "$light_aliases" # Try to parse first argument as lights
+        if [ $? -ne 0 ]; then # If parsing of light-list was unsuccessful, operate on default (for now all) lights and try to parse as first argument as properties instead
+            debug && echo "Failed to parse list of light aliases '$light_aliases'. Trying to parse as command instead, operating on default lights '$DEFAULT_LIGHTS'."
+            properties=$light_aliases
+            light_aliases=$DEFAULT_LIGHTS
+        else # Parsing of lights was successful -> use default command
+            debug && echo "Parsing of light aliases successful. No properties. Falling back to default '$DEFAULT_PROPERTIES'."
+            properties=$DEFAULT_PROPERTIES
         fi
     fi
 
@@ -247,12 +234,20 @@ try_parse_light_list() {
     return 0
 }
 
+arg1=$1
+arg2=$2
+
+# If both args are empty, fallback to __default.
+if [ -v $arg1 ] && [ -v $arg2 ]; then
+    debug && echo "No light aliases and properties. Falling back to default command '__default'."
+    arg1=__default
+fi
 
 # Process command if first arg is command
-if [[ -v COMMANDS[$1] ]]; then
-    debug && echo "Executing command $1"
+if [[ -v COMMANDS[$arg1] ]]; then
+    debug && echo "Executing command $arg1"
     # Instructions are split using ;
-    command=${COMMANDS[$1]}
+    command=${COMMANDS[$arg1]}
     for instruction in ${command//;/ }
     do
         debug && echo "Executing instruction $instruction"
@@ -268,7 +263,7 @@ fi
 # TODO: make this more intuitive / user-friendly by leaving out the equals-sign etc in the input (and then converting that input to a command here)
 # For now, the commands will be expected to look exactly like the ones in the file
 
-execute_instruction "$1=$2"
+execute_instruction "$arg1=$arg2"
 
 # Try to parse light list
 
