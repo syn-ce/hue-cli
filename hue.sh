@@ -9,7 +9,7 @@ debug() [[ -v DEBUG ]]
 
 declare -A LIGHT_ALIASES
 declare -A COMMANDS
-declare -A curr_command
+declare -A curr_instruction
 
 NR_LIGHTS=$((NR_LIGHTS + 0)) # Convert to number
 
@@ -50,14 +50,14 @@ set_light_state() {
     return 0
 }
 
-# Execute the command given as an argument. Command has the form a=b, where a is a list of light aliases and b is a list of properties
+# Execute the instruction given as an argument. Instruction has the form a=b, where a is a list of light aliases and b is a list of properties
 # to apply to the lights (both comma-separated). If b is empty, a will be parsed as the light alias list. If that fails, b will be
 # assigned a's content and they will be interpreted as a list of properties.
 # If a is empty a default list of light aliases will be used, specified in the light mappings. If no default is specified, use all
-# lights from 1 to $LIGHT_NR. If b is empty and a does not contain properties, b will be assigned a default value, or 'off' is none is configured.
+# lights from 1 to $LIGHT_NR. If b is empty and a does not contain properties, b will be assigned a default value (__default), or 'off' if none is configured.
 
-execute_command() {
-    declare -gA curr_command # Clear previous command
+execute_instruction() {
+    declare -gA curr_instruction # Clear previous instruction
     LIGHT_LIST=() # Clear previous lights
 
     IFS='=' read light_aliases properties <<< $1 # Split command into lights and properties
@@ -116,34 +116,35 @@ execute_command() {
         case $val in
             "on")
             debug && echo "Adding 'on'=true."
-            curr_command["on"]=true
+            curr_instruction["on"]=true
             ;;
             "off")
             debug && echo "Adding 'on'=false."
-            curr_command["on"]=false
+            curr_instruction["on"]=false
             ;;
             b[0-9][0-9]*)
             debug && echo "Adding 'bri'=${val:1}."
-            curr_command["bri"]=${val:1}
+            curr_instruction["bri"]=${val:1}
             ;;
             h[0-9][0-9]*)
             debug && echo "Adding 'hue'=${val:1}."
-            curr_command["hue"]=${val:1}
+            curr_instruction["hue"]=${val:1}
             ;;
             s[0-9][0-9]*)
             debug && echo "Adding 'sat'=${val:1}."
-            curr_command["sat"]=${val:1}
+            curr_instruction["sat"]=${val:1}
             ;;
             *)
             echo -n "Unknown property in command '$1': Expected 'on', 'off' or '@(s|h|b)[0-9]+', got '$val'"
+            echo
             return 1;
             ;;
         esac
     done
 
-    # Construct json from curr_command
-    json_str="$(for key in "${!curr_command[@]}"; do
-            printf '%s\0%s\0' "$key" "${curr_command[$key]}"
+    # Construct json from curr_instruction
+    json_str="$(for key in "${!curr_instruction[@]}"; do
+            printf '%s\0%s\0' "$key" "${curr_instruction[$key]}"
         done |
         jq -Rs '
           split("\u0000")
@@ -215,7 +216,7 @@ add_light_nr_if_new() {
         fi
     done
     # Nr not in list
-    debug && echo "Light $nr not present in LIGHT_LIST. Adding it."
+    debug && echo "Light $1 not present in LIGHT_LIST. Adding it."
     LIGHT_LIST+=($1)
 }
 
@@ -232,7 +233,7 @@ try_parse_light_list() {
                 return 1
             fi
         fi
-        if [ ! -v "${LIGHT_ALIASES[$light_alias]}" ]; then # Light-alias
+        if [ -v LIGHT_ALIASES[$light_alias] ]; then # Light-alias
             debug && echo "Light alias is name. LIGHT_ALIASES[$light_alias]=${LIGHT_ALIASES[$light_alias]}"
             for light_nr in "${LIGHT_ALIASES[$light_alias]}"
             do
@@ -250,7 +251,13 @@ try_parse_light_list() {
 # Process command if first arg is command
 if [[ -v COMMANDS[$1] ]]; then
     debug && echo "Executing command $1"
-    execute_command ${COMMANDS[$1]} # TODO: check for errors
+    # Instructions are split using ;
+    command=${COMMANDS[$1]}
+    for instruction in ${command//;/ }
+    do
+        debug && echo "Executing instruction $instruction"
+        execute_instruction $instruction # TODO: check for errors
+    done
     exit 0
 else
     debug && echo "Did not recognize a command."
@@ -261,7 +268,7 @@ fi
 # TODO: make this more intuitive / user-friendly by leaving out the equals-sign etc in the input (and then converting that input to a command here)
 # For now, the commands will be expected to look exactly like the ones in the file
 
-execute_command "$1=$2"
+execute_instruction "$1=$2"
 
 # Try to parse light list
 
