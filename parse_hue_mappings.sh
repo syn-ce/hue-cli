@@ -1,7 +1,7 @@
 #! /bin/bash
 
-# Reads the mappings from aliases to aliases and light numbers defined in $1 (house=living_room,bath)
-# and processes them into a config $2 containing mappings from aliases to their lights (house=2,3,6).
+# Reads the light mappings from aliases to aliases and light numbers defined in $1 (house=living_room,bath,1)
+# and processes them into a config $2 containing mappings from aliases to their lights (house=1,2,3,6).
 
 declare -A word2nums
 declare -A word2arr_str
@@ -59,6 +59,7 @@ process_arr_str() {
     done
 }
 
+# Check args
 if [ -z $1 ]; then
     echo "Require first argument to be the full path to the file in which the mappings are defined, but no first argument was provided."
     exit 1

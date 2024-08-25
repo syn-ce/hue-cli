@@ -1,10 +1,12 @@
 #!/bin/bash
 
+# Tiny cli for interacting with your Philips Hue bridge. Expects a hue_config file at ~/hue-cli/hue_config
+# and a file for parsing the light mappings at ~/hue-cli/parse_hue_mappings.sh
+
 # Contains HUE_BRIDGE_API, API_KEY, NR_LIGHTS, AUTO_MAPPING_PATH, LIGHT_MAPPING_PATH, COMMAND_PATH, DEFAULT_LIGHTS, DEFAULT_PROPERTIES, PRINT(?), DEBUG(?)
 source ~/hue-cli/hue_config
 
 print() [[ -v PRINT ]]
-
 debug() [[ -v DEBUG ]]
 
 declare -A LIGHT_ALIASES
@@ -16,7 +18,7 @@ NR_LIGHTS=$((NR_LIGHTS + 0)) # Convert to number
 # List of lights to operate on
 LIGHT_LIST=()
 
-# -- Parse mappings if necessary
+# -- Parse light mappings if necessary
 if [ ! -e "$AUTO_MAPPING_PATH" ]; then # File for generated mappings doesn't even exist yet
     debug && echo "File '$AUTO_MAPPING_PATH' does not exist. Parsing '$LIGHT_MAPPING_PATH'."
     ~/hue-cli/parse_hue_mappings.sh $LIGHT_MAPPING_PATH $AUTO_MAPPING_PATH
@@ -30,14 +32,14 @@ else
     fi
 fi
 
-# -- Load light-aliases with their light numbers
+# -- Load light mappings, i.e. light aliases with their light numbers
 debug && echo "Parsing light aliases from file '$LIGHT_MAPPING_PATH'"
 while IFS='=' read light_alias lights_str; do
     LIGHT_ALIASES[$light_alias]=$lights_str
     debug && echo "Parsed light_alias '$light_alias'  and lights_str '$lights_str'"
 done < $LIGHT_MAPPING_PATH
 
-# light_nr, json
+# Takes light_nr, json
 set_light_state() {
     error=$(echo $2 | curl -s -X PUT http://$HUE_BRIDGE_IP/api/$API_KEY/lights/$1/state \
     --data-binary @- | jq '.[0].error')
@@ -162,20 +164,12 @@ execute_instruction() {
     done
 }
 
-# Read commands
+# Read commands from file
 debug && echo "Loading commands"
 while IFS=':' read name instructions; do
     debug && echo "COMMANDS[$name]=$instructions}"
     COMMANDS[$name]=$instructions
 done < $COMMAND_PATH
-
-light_is_on() {
-    curl -s http://$HUE_BRIDGE_IP/api/$API_KEY/lights/$1 | jq '.state.on'
-}
-
-set_light_state_on() {
-    curl -s -X PUT -d "{\"on\":$2}" -o /dev/null http://$HUE_BRIDGE_IP/api/$API_KEY/lights/$1/state
-}
 
 set_state() {
     if [ "$ACTION" == "on" ]; then
@@ -183,14 +177,6 @@ set_state() {
     else
         ACTION="off"
         STATE=false
-    fi
-}
-
-echo_info() {
-    if [ $1 -eq 0 ]; then
-        echo "Light $2 turned $3 successfully."
-    else
-        echo "Failed to turn $3 light $2."
     fi
 }
 
@@ -212,6 +198,7 @@ add_light_nr_if_new() {
     LIGHT_LIST+=($1)
 }
 
+# Try to parse the list of lights (comma-separated aliases and/or numbers)
 try_parse_light_list() {
     for light_alias in ${1//,/ }
     do
@@ -242,7 +229,7 @@ try_parse_light_list() {
 arg1=$1
 arg2=$2
 
-# If both args are empty, fallback to __default.
+# If both args are empty, fallback to __default command
 if [ -v $arg1 ] && [ -v $arg2 ]; then
     debug && echo "No light aliases and properties. Falling back to default command '__default'."
     arg1=__default
@@ -263,4 +250,5 @@ else
     debug && echo "Did not recognize a command."
 fi
 
+# Build instruction from args
 execute_instruction "$arg1=$arg2"
