@@ -64,6 +64,11 @@ execute_instruction() {
 
     debug && echo "Executing instruction '$1'. Parsed light_aliases '$light_aliases' and properties '$properties'"
 
+    if [ -v $light_aliases ]; then # Use default lights
+        debug && echo "No light aliases. Using default lights '$DEFAULT_LIGHTS'."
+        light_aliases=$DEFAULT_LIGHTS
+    fi
+
     if [ -v $properties ]; then
         debug && echo "Empty properties. Trying to parse light_aliases as light aliases."
         try_parse_light_list "$light_aliases" # Try to parse first argument as lights
