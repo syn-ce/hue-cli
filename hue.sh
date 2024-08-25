@@ -84,7 +84,7 @@ execute_command() {
                 properties=$light_aliases
                 light_aliases=$default_light_aliases
             else # Parsing of lights was successful -> use default command
-                echo "Parsing of light aliases successful. No properties. Falling back to default '$default_properties'."
+                debug && echo "Parsing of light aliases successful. No properties. Falling back to default '$default_properties'."
                 properties=$default_properties
             fi
         fi
