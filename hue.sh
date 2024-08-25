@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Contains HUE_BRIDGE_API, API_KEY, NR_LIGHTS, AUTO_MAPPING_PATH, LIGHT_MAPPING_PATH, PRINT(?), DEBUG(?)
+# Contains HUE_BRIDGE_API, API_KEY, NR_LIGHTS, AUTO_MAPPING_PATH, LIGHT_MAPPING_PATH, COMMAND_PATH, PRINT(?), DEBUG(?)
 source ~/hue-cli/hue_config
 
 print() [[ -v PRINT ]]
@@ -174,7 +174,7 @@ debug && echo "Loading commands"
 while IFS=':' read name instructions; do
     debug && echo "COMMANDS[$name]=$instructions}"
     COMMANDS[$name]=$instructions
-done < hue_commands.txt
+done < $COMMAND_PATH
 
 light_is_on() {
     curl -s http://$HUE_BRIDGE_IP/api/$API_KEY/lights/$1 | jq '.state.on'
