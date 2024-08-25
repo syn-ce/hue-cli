@@ -14,12 +14,12 @@ LIGHT_LIST=()
 
 # -- Parse mappings if necessary
 if [ ! -e "$AUTO_MAPPING_PATH" ]; then # File for generated mappings doesn't even exist yet
-    ./parse_hue_mappings.sh $LIGHT_MAPPING_PATH $AUTO_MAPPING_PATH
+    ~/hue-cli/parse_hue_mappings.sh $LIGHT_MAPPING_PATH $AUTO_MAPPING_PATH
 else
     mapping_date=$(date -r $LIGHT_MAPPING_PATH +%s)
     auto_mapping_data=$(date -r $LIGHT_MAPPING_PATH +%s)
     if [ "$mapping_date" -ge "$auto_mapping_data" ]; then # Mappings have changed since last parsing
-        ./parse_hue_mappings.sh $LIGHT_MAPPING_PATH $AUTO_MAPPING_PATH
+        ~/hue-cli/parse_hue_mappings.sh $LIGHT_MAPPING_PATH $AUTO_MAPPING_PATH
     fi
 fi
 
@@ -48,7 +48,7 @@ set_light_state() {
 }
 
 # Execute the command given as an argument. Command has the form a=b, where a is a list of light aliases and b is a list of properties
-# to apply to the lights (both comma-separated). If b is empty, a will be parsed as the light alias list. If that fails, b will be 
+# to apply to the lights (both comma-separated). If b is empty, a will be parsed as the light alias list. If that fails, b will be
 # assigned a's content and they will be interpreted as a list of properties.
 # If a is empty a default list of light aliases will be used, specified in the light mappings. If no default is specified, use all
 # lights from 1 to $LIGHT_NR. If b is empty and a does not contain properties, b will be assigned a default value, or 'off' is none is configured.
@@ -70,7 +70,7 @@ execute_command() {
             echo "No light aliases. Using default lights '$default_light_aliases'."
             light_aliases=$default_light_aliases
         fi
-    
+
         if [ -v $properties ]; then
             try_parse_light_list "$light_aliases" # Try to parse first argument as lights
             if [ $? -ne 0 ]; then # If parsing of light-list was unsuccessful, operate on default (for now all) lights and try to parse as first argument as properties instead
@@ -95,7 +95,7 @@ execute_command() {
             exit 1
         fi
     fi
-    
+
     if [ -v $properties ]; then
         properties=off
     fi
