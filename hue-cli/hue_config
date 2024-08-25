@@ -1,0 +1,10 @@
+HUE_BRIDGE_IP=XXX.XXX.X.XXX
+API_KEY=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+NR_LIGHTS=3
+LIGHT_MAPPING_PATH=~/hue-cli/hue_light_mappings
+AUTO_MAPPING_PATH=~/hue-cli/generated/hue_auto_mappings
+COMMAND_PATH=~/hue-cli/hue_commands
+DEFAULT_LIGHTS= # Will fallback to all lights
+DEFAULT_PROPERTIES=off
+PRINT=
+#DEBUG=

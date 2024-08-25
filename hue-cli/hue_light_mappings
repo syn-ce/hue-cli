@@ -1,0 +1,5 @@
+mirror=3
+bath=mirror,2
+living_room=1
+house=bath,living_room
+empty=
