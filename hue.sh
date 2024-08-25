@@ -1,7 +1,11 @@
 #!/bin/bash
 
-# Contains HUE_BRIDGE_API, API_KEY, NR_LIGHTS, AUTO_MAPPING_PATH, LIGHT_MAPPING_PATH
+# Contains HUE_BRIDGE_API, API_KEY, NR_LIGHTS, AUTO_MAPPING_PATH, LIGHT_MAPPING_PATH, PRINT(?), DEBUG(?)
 source ~/hue-cli/hue_config
+
+print() [[ -v PRINT ]]
+
+debug() [[ -v DEBUG ]]
 
 declare -A LIGHT_ALIASES
 declare -A COMMANDS
@@ -14,25 +18,24 @@ LIGHT_LIST=()
 
 # -- Parse mappings if necessary
 if [ ! -e "$AUTO_MAPPING_PATH" ]; then # File for generated mappings doesn't even exist yet
+    debug && echo "File '$AUTO_MAPPING_PATH' does not exist. Parsing '$LIGHT_MAPPING_PATH'."
     ~/hue-cli/parse_hue_mappings.sh $LIGHT_MAPPING_PATH $AUTO_MAPPING_PATH
 else
-    mapping_date=$(date -r $LIGHT_MAPPING_PATH +%s)
-    auto_mapping_data=$(date -r $LIGHT_MAPPING_PATH +%s)
+    debug && echo "File '$AUTO_MAPPING_PATH' exists."
+    mapping_date=$(date -r "$LIGHT_MAPPING_PATH" +%s)
+    auto_mapping_data=$(date -r "$LIGHT_MAPPING_PATH" +%s)
     if [ "$mapping_date" -ge "$auto_mapping_data" ]; then # Mappings have changed since last parsing
+        debug && echo "File '$LIGHT_MAPPING_PATH' is more recent than '$AUTO_MAPPING_PATH'. Parsing '$LIGHT_MAPPING_PATH'."
         ~/hue-cli/parse_hue_mappings.sh $LIGHT_MAPPING_PATH $AUTO_MAPPING_PATH
     fi
 fi
 
 # -- Load light-aliases with their light numbers
+debug && echo "Parsing light aliases from file '$LIGHT_MAPPING_PATH'"
 while IFS='=' read light_alias lights_str; do
     LIGHT_ALIASES[$light_alias]=$lights_str
+    debug && echo "Parsed light_alias '$light_alias'  and lights_str '$lights_str'"
 done < $LIGHT_MAPPING_PATH
-
-echo "LOADED LIGHT_ALIASES:"
-for key in ${!LIGHT_ALIASES[@]}
-do
-    echo " $key=${LIGHT_ALIASES[$key]}"
-done
 
 # light_nr, json
 set_light_state() {
@@ -43,7 +46,7 @@ set_light_state() {
         echo "$error"
         return 1
     fi
-    echo "Successfully set state of light $1."
+    print && echo "Successfully set state of light $1."
     return 0
 }
 
@@ -61,25 +64,27 @@ execute_command() {
 
     IFS='=' read default_light_aliases default_properties <<< ${COMMANDS[__default]} # Split default command into lights and properties
 
+    debug && echo "Executing command '$1'. Parsed light_aliases '$light_aliases' and properties '$properties'"
+
     if [ -v $light_aliases ] && [ -v $properties ]; then
-        echo "No light aliases and properties. Falling back to default command '__default'."
+        debug && echo "No light aliases and properties. Falling back to default command '__default'."
         light_aliases=$default_light_aliases
         properties=$default_properties
     else
         if [ -v $light_aliases ]; then # Use the default light-aliases (if no default is specified/it has an empty light list, simply use all lights)
-            echo "No light aliases. Using default lights '$default_light_aliases'."
+            debug && echo "No light aliases. Using default lights '$default_light_aliases'."
             light_aliases=$default_light_aliases
         fi
 
         if [ -v $properties ]; then
+            debug && echo "Empty properties. Trying to parse light_aliases as light aliases."
             try_parse_light_list "$light_aliases" # Try to parse first argument as lights
             if [ $? -ne 0 ]; then # If parsing of light-list was unsuccessful, operate on default (for now all) lights and try to parse as first argument as properties instead
-                echo "Failed to parse list of light aliases '$light_aliases'."
-                echo "Trying to parse as command instead, operating on all lights."
+                debug && echo "Failed to parse list of light aliases '$light_aliases'. Trying to parse as command instead, operating on default_light aliases '$default_light_aliases'."
                 properties=$light_aliases
                 light_aliases=$default_light_aliases
             else # Parsing of lights was successful -> use default command
-                echo "No properties. Falling back to default '$default_properties'."
+                echo "Parsing of light aliases successful. No properties. Falling back to default '$default_properties'."
                 properties=$default_properties
             fi
         fi
@@ -87,36 +92,46 @@ execute_command() {
 
     # Check if light_aliases or properties are (still) empty, meaning that the defaults are empty; If so, fallback to all lights / off
     if [ -v $light_aliases ]; then
+        debug && echo "Light aliases still empty. Falling back to using all lights (1 to $NR_LIGHTS)."
         LIGHT_LIST=($(seq 1 1 $NR_LIGHTS))
     elif [ ${#LIGHT_LIST[@]} -eq 0 ]; then # Avoid unnecessary double parsing of light_aliases
+        debug && echo "Trying to parse light aliases."
         try_parse_light_list "$light_aliases" # TODO: add check
         if [ $? -ne 0 ]; then # If parsing of light-list was unsuccessful, operate on default (for now all) lights and try to parse as first argument as properties instead
             echo "Failed to parse list of light aliases '$light_aliases'."
             exit 1
         fi
+        debug && echo "Successfully parsed light aliases."
     fi
 
     if [ -v $properties ]; then
+        debug && echo "Properties still empty. Falling back to 'off'."
         properties=off
     fi
 
+    debug && echo "Constructing associative array from properties."
     # Construct associative array from properties
     for val in ${properties//,/ }
     do
         case $val in
             "on")
+            debug && echo "Adding 'on'=true."
             curr_command["on"]=true
             ;;
             "off")
+            debug && echo "Adding 'on'=false."
             curr_command["on"]=false
             ;;
             b[0-9][0-9]*)
+            debug && echo "Adding 'bri'=${val:1}."
             curr_command["bri"]=${val:1}
             ;;
             h[0-9][0-9]*)
+            debug && echo "Adding 'hue'=${val:1}."
             curr_command["hue"]=${val:1}
             ;;
             s[0-9][0-9]*)
+            debug && echo "Adding 'sat'=${val:1}."
             curr_command["sat"]=${val:1}
             ;;
             *)
@@ -145,6 +160,8 @@ execute_command() {
                 })'
     )"
 
+    debug && echo "json_str=$json_str"
+
     for light_nr in ${LIGHT_LIST[@]}
     do
         # TODO: check if light_nr is valid light number
@@ -153,17 +170,11 @@ execute_command() {
 }
 
 # Read commands
+debug && echo "Loading commands"
 while IFS=':' read name instructions; do
+    debug && echo "COMMANDS[$name]=$instructions}"
     COMMANDS[$name]=$instructions
 done < hue_commands.txt
-
-echo "LOADED COMMANDS:"
-for key in ${!COMMANDS[@]}
-do
-    echo "$key:${COMMANDS[$key]}"
-    #execute_command ${COMMANDS[$key]}
-done
-# --
 
 light_is_on() {
     curl -s http://$HUE_BRIDGE_IP/api/$API_KEY/lights/$1 | jq '.state.on'
@@ -192,24 +203,28 @@ echo_info() {
 
 # Add nr to LIGHT_LIST if it's new
 add_light_nr_if_new() {
-    if [ -z $1 ]; then # Check if empty TODO: this should not be necessary here
+    if [ -v $1 ]; then # Check if empty TODO: this should not be necessary here
         return
     fi
     # Check if nr already exists; if so, don't add it again. NOTE: quadratic time complexity
     for nr in $LIGHT_LIST
     do
         if [ "$1" -eq "$nr" ]; then
+            debug && echo "Light $nr already present in LIGHT_LIST"
             return
         fi
     done
     # Nr not in list
+    debug && echo "Light $nr not present in LIGHT_LIST. Adding it."
     LIGHT_LIST+=($1)
 }
 
 try_parse_light_list() {
     for light_alias in ${1//,/ }
     do
+        debug && echo "light_alias = $light_alias"
         if [[ $light_alias =~ ^[0-9]+$ ]]; then # Light-Number
+            debug && echo "Light alias is number."
             if (( 0 <= $light_alias && $light_alias  <= $NR_LIGHTS )); then
                 add_light_nr_if_new $light_alias
                 continue
@@ -217,7 +232,8 @@ try_parse_light_list() {
                 return 1
             fi
         fi
-        if [ ! -z "${LIGHT_ALIASES[$light_alias]}" ]; then # Light-alias
+        if [ ! -v "${LIGHT_ALIASES[$light_alias]}" ]; then # Light-alias
+            debug && echo "Light alias is name. LIGHT_ALIASES[$light_alias]=${LIGHT_ALIASES[$light_alias]}"
             for light_nr in "${LIGHT_ALIASES[$light_alias]}"
             do
                 add_light_nr_if_new $light_nr
@@ -233,11 +249,11 @@ try_parse_light_list() {
 
 # Process command if first arg is command
 if [[ -v COMMANDS[$1] ]]; then
-    echo "Executing command $1"
+    debug && echo "Executing command $1"
     execute_command ${COMMANDS[$1]} # TODO: check for errors
     exit 0
 else
-    echo "Did not recognize a command."
+    debug && echo "Did not recognize a command."
 fi
 
 # Convert the input into a command to be executed
