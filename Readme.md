@@ -135,7 +135,7 @@ Path to the file containing the [light mappings](#light-mappings).
 
 ##### `AUTO_MAPPING_PATH`
 
-Path to the file to which the automatically generated mappings will be written. Whenever the main script is run, it will check whether the user's light mappings have been updated since the [light mapping file](#light_mapping_path) file has last been updated. If it has, then the script will call `~/hue-cli/parse_hue_mappings.sh` which will parse the mappings specified in the [light mapping file](#light_mapping_pathhue-clihue_light_mappings) and write the generated output to the file specified here. This generated file will contain the same mappings as the file specified by the user, but the lists on the right hand side of `name=LIGHT_LIST` will only contain numbers, making it much more comfortable to work wit, making it much more comfortable to work with in code.
+Path to the file to which the automatically generated mappings will be written. Whenever the main script is run, it will check whether the user's light mappings have been updated since the [light mapping file](#light_mapping_path) file has last been updated. If it has, then the script will call `~/hue-cli/parse_hue_mappings.sh` which will parse the mappings specified in the [light mapping file](#light_mapping_pathhue-clihue_light_mappings) and write the generated output to the file specified here. This generated file will contain the same mappings as the file specified by the user, but the lists on the right hand side of `name=LIGHT_LIST` will only contain numbers, making it much more comfortable to work with in code.
 
 ##### `COMMAND_PATH`
 
