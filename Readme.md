@@ -147,7 +147,7 @@ When executing an instruction which does not specify a light list, this list of 
 
 ##### `DEFAULT_PROPERTIES`
 
-When executing an instruction which does not specify a list of properties, this list of properties will be used. When left empty, the script will default to `off`. That is, the properties will be set to `off`, meaning the lights acted upon will simply be turned off. That is, the list of properties will be set to `off`, meaning the lights acted upon will simply be turned off.
+When executing an instruction which does not specify a list of properties, this list of properties will be used. When left empty, the script will default to `off`. That is, the list of properties will be set to `off`, meaning the lights acted upon will simply be turned off.
 
 ##### `PRINT`
 
